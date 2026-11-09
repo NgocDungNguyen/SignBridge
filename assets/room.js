@@ -67,7 +67,7 @@ function upsert(m,fromHi){
   if(!m.id||m.id===me.id)return;
   var isNewP=!roster[m.id];
   roster[m.id]={id:m.id,name:String(m.name||'?').slice(0,24),role:m.role==='deaf'?'deaf':'hear',seen:Date.now(),joined:isNewP?Date.now():roster[m.id].joined,cam:m.cam!==undefined?!!m.cam:(isNewP?false:roster[m.id].cam)};
-  if(joined){if(isNewP){if(Date.now()-joinedAt>3500)toast(T('joined',{n:roster[m.id].name}));renderStage();if(me.id<m.id)getPeer(m.id);}else showRemote(m.id);}
+  if(joined){if(isNewP){if(Date.now()-joinedAt>3500)toast(T('joined',{n:roster[m.id].name}));renderStage();if(me.id<m.id)getPeer(m.id);var q=pendingRtc[m.id];if(q){delete pendingRtc[m.id];q.forEach(onRtc);}}else showRemote(m.id);}
   else renderPre();
 }
 function onMsg(m){
@@ -78,8 +78,12 @@ function onMsg(m){
   if(m.t==='ping'){upsert(m);return;}
   if(m.t==='bye'){var r=roster[m.id];if(r){delete roster[m.id];closePeer(m.id);if(joined){toast(T('left',{n:r.name}));renderStage();}else renderPre();}return;}
   if(m.t==='say'){upsert(m);if(joined)onSay(m);return;}
-  if(m.t==='cam'){upsert(m);return;}
-  if(m.t==='rtc'){if(joined&&m.to===me.id&&roster[m.id])onRtc(m);return;}
+  if(m.t==='cam'){upsert(m);if(!m.cam){delete frames[m.id];showFrame(m.id);}return;}
+  if(m.t==='frm'){if(joined&&roster[m.id]&&m.img&&m.img.length<60000){frames[m.id]={src:m.img,t:Date.now()};showFrame(m.id);}return;}
+  if(m.t==='rtc'){
+    if(!joined||m.to!==me.id)return;
+    if(roster[m.id])onRtc(m);else{(pendingRtc[m.id]=pendingRtc[m.id]||[]).push(m);setTimeout(function(){delete pendingRtc[m.id];},8000);}
+    return;}
 }
 function setNet(s){
   netSt=s;var el=$('netSt'),k=s.mqtt==='connected'?'ok':s.mqtt==='failed'?(s.bc?'loc':'bad'):'';
@@ -125,12 +129,13 @@ function renderGuide(el,mark){
 
 
 /* ---------- video sharing: WebRTC peer-to-peer mesh, signalled over the same room channel ---------- */
-var ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]};
-var peers={};
-function rtcSend(to,k,d){net&&net.send({t:'rtc',id:me.id,to:to,k:k,d:d});}
+var NORTC=qs.get('nortc')==='1';
+var ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302','stun:stun.cloudflare.com:3478','stun:global.stun.twilio.com:3478']},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]};
+var peers={},pendingRtc={};
+function rtcSend(to,k,d){if(window.__rtcDbg)console.log('[rtc] send',k,d&&d.type||'',to);net&&net.send({t:'rtc',id:me.id,to:to,k:k,d:d});}
 function getPeer(id){
   var P=peers[id];if(P)return P;
-  if(typeof RTCPeerConnection==='undefined')return null;
+  if(NORTC||typeof RTCPeerConnection==='undefined')return null;
   var pc=new RTCPeerConnection(ICE);
   P={pc:pc,polite:me.id>id,making:false,ignore:false,stream:null,sender:null,iceQ:[],chain:Promise.resolve()};peers[id]=P;
   pc.onicecandidate=function(e){if(e.candidate)rtcSend(id,'ice',e.candidate.toJSON());};
@@ -142,7 +147,7 @@ function getPeer(id){
     try{P.making=true;await pc.setLocalDescription();rtcSend(id,'desc',pc.localDescription.toJSON());}
     catch(e){console.warn('[rtc] negotiate',e);}finally{P.making=false;}
   };
-  pc.oniceconnectionstatechange=function(){if(pc.iceConnectionState==='failed'){try{pc.restartIce();}catch(e){}}};
+  pc.oniceconnectionstatechange=function(){console.log('[rtc]',id,pc.iceConnectionState);if(pc.iceConnectionState==='failed'){try{pc.restartIce();}catch(e){}}};
   if(stream&&camOn)attachTo(P);else if(me.id<id)pc.addTransceiver('video',{direction:'recvonly'});
   return P;
 }
@@ -154,7 +159,7 @@ function attachAll(){Object.keys(peers).forEach(function(id){attachTo(peers[id])
 function detachAll(){Object.keys(peers).forEach(function(id){var P=peers[id];if(P.sender)P.sender.replaceTrack(null).catch(function(){});});}
 function closePeer(id){var P=peers[id];if(!P)return;try{P.pc.close();}catch(e){}delete peers[id];var t=tiles[id];if(t){var v=t.querySelector('video');if(v){v.srcObject=null;}t.classList.remove('hasvid');}}
 function onRtc(m){
-  var P=getPeer(m.id);if(!P)return;
+  var P=getPeer(m.id);if(!P)return;if(window.__rtcDbg)console.log('[rtc] recv',m.k,m.d&&m.d.type||'',m.id,P.pc.signalingState,P.making,P.polite);
   P.chain=P.chain.then(async function(){
     var pc=P.pc;
     try{
@@ -171,6 +176,23 @@ function onRtc(m){
     }catch(e){console.warn('[rtc]',e);}
   });
 }
+
+/* ---------- fallback when peer-to-peer video cannot connect: small JPEG snapshots over the room channel ---------- */
+var frames={},frmT=0,fcv=document.createElement('canvas');
+function peerOk(id){var P=peers[id];return !!(P&&P.sender&&(P.pc.iceConnectionState==='connected'||P.pc.iceConnectionState==='completed'));}
+function sendFrame(){
+  if(!camOn||!stream||!joined||!net||vid.readyState<2||!vid.videoWidth)return;
+  var ids=Object.keys(roster);if(!ids.length||ids.every(peerOk))return;
+  var w=192,h=Math.round(w*vid.videoHeight/vid.videoWidth);fcv.width=w;fcv.height=h;
+  fcv.getContext('2d').drawImage(vid,0,0,w,h);
+  net.send({t:'frm',id:me.id,img:fcv.toDataURL('image/jpeg',0.5)});
+}
+function showFrame(id){
+  var t=tiles[id],f=frames[id],r=roster[id];if(!t)return;
+  var live=!!(f&&r&&r.cam&&Date.now()-f.t<3500),im=t.querySelector('img.frm');
+  if(live){if(!im){im=document.createElement('img');im.className='frm';im.alt='';t.insertBefore(im,t.firstChild);}if(im.getAttribute('src')!==f.src)im.src=f.src;}
+  t.classList.toggle('hasfrm',live&&!t.classList.contains('hasvid'));
+}
 function sendCam(){net&&joined&&net.send({t:'cam',id:me.id,name:me.name,role:me.role,cam:camOn});}
 function videoEl(t){
   var v=t.querySelector('video');
@@ -181,8 +203,9 @@ function showRemote(id){
   var t=tiles[id],P=peers[id],r=roster[id];if(!t)return;
   var on=!!(r&&r.cam&&P&&P.stream&&P.stream.getVideoTracks().length);
   var v=videoEl(t);
+  if(!v._wired){v._wired=1;['playing','loadeddata','resize','emptied'].forEach(function(ev){v.addEventListener(ev,function(){showRemote(id);});});}
   if(on){if(v.srcObject!==P.stream)v.srcObject=P.stream;var pr=v.play();if(pr&&pr.catch)pr.catch(function(){});}
-  t.classList.toggle('hasvid',on);
+  t.classList.toggle('hasvid',on&&v.videoWidth>0);showFrame(id);
 }
 function showLocal(){
   var t=tiles[me.id];if(!t)return;var v=videoEl(t);v.classList.add('mirror');
@@ -491,9 +514,9 @@ function doJoin(){
   unlockTTS();joined=true;joinedAt=Date.now();
   $('pre').hidden=true;$('app').hidden=false;paint();
   setupRole();renderStage();SBI.apply();
-  Object.keys(roster).forEach(function(id){if(me.id<id)getPeer(id);});
   if(netSt.mqtt==='connected'||net)sendHi(false);
-  setInterval(sendPing,12000);
+  Object.keys(roster).forEach(function(id){if(me.id<id)getPeer(id);});
+  setInterval(sendPing,12000);setInterval(sendFrame,500);setInterval(function(){Object.keys(tiles).forEach(showFrame);},1000);
   setInterval(function(){var t=Date.now(),ch=false;Object.keys(roster).forEach(function(id){if(t-roster[id].seen>36000){toast(T('left',{n:roster[id].name}));delete roster[id];closePeer(id);ch=true;}});if(ch)renderStage();},5000);
   if(me.role==='deaf'){setStatus(T('camAsk'));startCam();}
   if(window.innerWidth<=900)panel(true);
@@ -558,7 +581,7 @@ function init(){
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&joined)sendPing();});
   requestAnimationFrame(frame);
   startNet();
-  window.__sb={me:me,roster:roster,state:function(){return{sgState:sgState,seq:seqG.slice(),camOn:camOn,netSt:netSt,tab:curTab};}};
+  window.__sb={me:me,roster:roster,peerStates:function(){var o={};Object.keys(peers).forEach(function(i){o[i]=peers[i].pc.iceConnectionState;});return o;},state:function(){return{sgState:sgState,seq:seqG.slice(),camOn:camOn,netSt:netSt,tab:curTab};}};
 }
 init();
 })();

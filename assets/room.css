@@ -153,3 +153,6 @@
 .tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;background:#202124}
 .tile.hasvid video{display:block}.tile video.mirror{transform:scaleX(-1)}
 .tile.hasvid .av{display:none}
+
+.tile img.frm{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;background:#202124}
+.tile.hasfrm img.frm{display:block}.tile.hasfrm .av{display:none}
