@@ -30,7 +30,7 @@ function inviteUrl(){return location.origin+location.pathname+'?c='+CODE;}
 function langBtnHtml(){return SBI.get()==='vi'?'<b>VI</b> · EN':'VI · <b>EN</b>';}
 
 /* ---------- text-to-speech (correct English / Vietnamese voice) ---------- */
-var voices=[], ttsBlock=0, warned={};
+var voices=[], ttsBlock=0, warned={}, lastTTS=0, lastSigned=null;
 function loadVoices(){try{voices=speechSynthesis.getVoices()||[];}catch(e){voices=[];}}
 loadVoices();try{speechSynthesis.addEventListener('voiceschanged',loadVoices);}catch(e){}
 function pickVoice(lang){
@@ -40,7 +40,8 @@ function pickVoice(lang){
   function sc(v){var l=String(v.lang).toLowerCase().replace('_','-'),n=v.name||'';return (l===want?4:0)+(/natural|neural|online|premium|enhanced/i.test(n)?3:0)+(/google/i.test(n)?2:0)+(v.localService?1:0)-(/compact|novelty|whisper/i.test(n)?3:0);}
   c.sort(function(a,b){return sc(b)-sc(a);});return c[0];
 }
-function unlockTTS(){try{var u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}catch(e){}}
+var IOS=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function unlockTTS(){if(!IOS)return;try{var u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}catch(e){}}
 function speak(text,lang){
   if(!('speechSynthesis' in window)||!text)return;
   try{
@@ -48,21 +49,25 @@ function speak(text,lang){
     var u=new SpeechSynthesisUtterance(text),v=pickVoice(lang);
     u.lang=lang==='vi'?'vi-VN':'en-US';
     if(v){u.voice=v;u.lang=v.lang;}else if(voices.length&&!warned[lang]){warned[lang]=1;toast(T('noVoice'+(lang==='vi'?'Vi':'En')));}
-    u.rate=1;u.onstart=function(){ttsBlock=Date.now()+60000;};u.onend=u.onerror=function(){ttsBlock=Date.now()+900;};
+    u.rate=1;u.onstart=function(){ttsBlock=Date.now()+60000;lastTTS=Date.now();};
+    u.onend=function(){ttsBlock=Date.now()+900;};
+    u.onerror=function(e){ttsBlock=Date.now()+900;if(e&&e.error&&e.error!=='canceled'&&e.error!=='interrupted')toast(T('voiceTap'));};
     if(speechSynthesis.paused)speechSynthesis.resume();
+    if(speechSynthesis.speaking&&Date.now()-lastTTS>12000)speechSynthesis.cancel();   /* un-stick a hung queue */
+    lastTTS=lastTTS||Date.now();
     speechSynthesis.speak(u);
   }catch(e){}
 }
 window.__sbVoice=function(l){var v=pickVoice(l);return v?{name:v.name,lang:v.lang}:null;};
 
 /* ---------- network ---------- */
-function sendHi(re){net&&net.send({t:'hi',id:me.id,name:me.name,role:me.role,re:!!re});}
-function sendPing(){net&&joined&&net.send({t:'ping',id:me.id,name:me.name,role:me.role});}
+function sendHi(re){net&&net.send({t:'hi',id:me.id,name:me.name,role:me.role,cam:camOn,re:!!re});}
+function sendPing(){net&&joined&&net.send({t:'ping',id:me.id,name:me.name,role:me.role,cam:camOn});}
 function upsert(m,fromHi){
   if(!m.id||m.id===me.id)return;
   var isNewP=!roster[m.id];
-  roster[m.id]={id:m.id,name:String(m.name||'?').slice(0,24),role:m.role==='deaf'?'deaf':'hear',seen:Date.now(),joined:isNewP?Date.now():roster[m.id].joined};
-  if(joined){if(isNewP){if(Date.now()-joinedAt>3500)toast(T('joined',{n:roster[m.id].name}));renderStage();}}
+  roster[m.id]={id:m.id,name:String(m.name||'?').slice(0,24),role:m.role==='deaf'?'deaf':'hear',seen:Date.now(),joined:isNewP?Date.now():roster[m.id].joined,cam:m.cam!==undefined?!!m.cam:(isNewP?false:roster[m.id].cam)};
+  if(joined){if(isNewP){if(Date.now()-joinedAt>3500)toast(T('joined',{n:roster[m.id].name}));renderStage();if(me.id<m.id)getPeer(m.id);}else showRemote(m.id);}
   else renderPre();
 }
 function onMsg(m){
@@ -71,8 +76,10 @@ function onMsg(m){
   if(m.t==='probe'){if(joined)setTimeout(function(){sendHi(true);},60+Math.random()*400);return;}
   if(m.t==='hi'){upsert(m);if(!m.re&&joined)setTimeout(function(){sendHi(true);},60+Math.random()*400);return;}
   if(m.t==='ping'){upsert(m);return;}
-  if(m.t==='bye'){var r=roster[m.id];if(r){delete roster[m.id];if(joined){toast(T('left',{n:r.name}));renderStage();}else renderPre();}return;}
+  if(m.t==='bye'){var r=roster[m.id];if(r){delete roster[m.id];closePeer(m.id);if(joined){toast(T('left',{n:r.name}));renderStage();}else renderPre();}return;}
   if(m.t==='say'){upsert(m);if(joined)onSay(m);return;}
+  if(m.t==='cam'){upsert(m);return;}
+  if(m.t==='rtc'){if(joined&&m.to===me.id&&roster[m.id])onRtc(m);return;}
 }
 function setNet(s){
   netSt=s;var el=$('netSt'),k=s.mqtt==='connected'?'ok':s.mqtt==='failed'?(s.bc?'loc':'bad'):'';
@@ -116,6 +123,73 @@ function renderGuide(el,mark){
   });
 }
 
+
+/* ---------- video sharing: WebRTC peer-to-peer mesh, signalled over the same room channel ---------- */
+var ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun1.l.google.com:19302']},{urls:['turn:openrelay.metered.ca:80','turn:openrelay.metered.ca:443','turns:openrelay.metered.ca:443?transport=tcp'],username:'openrelayproject',credential:'openrelayproject'}]};
+var peers={};
+function rtcSend(to,k,d){net&&net.send({t:'rtc',id:me.id,to:to,k:k,d:d});}
+function getPeer(id){
+  var P=peers[id];if(P)return P;
+  if(typeof RTCPeerConnection==='undefined')return null;
+  var pc=new RTCPeerConnection(ICE);
+  P={pc:pc,polite:me.id>id,making:false,ignore:false,stream:null,sender:null,iceQ:[],chain:Promise.resolve()};peers[id]=P;
+  pc.onicecandidate=function(e){if(e.candidate)rtcSend(id,'ice',e.candidate.toJSON());};
+  pc.ontrack=function(e){
+    P.stream=(e.streams&&e.streams[0])||new MediaStream([e.track]);
+    e.track.onmute=e.track.onunmute=function(){showRemote(id);};showRemote(id);
+  };
+  pc.onnegotiationneeded=async function(){
+    try{P.making=true;await pc.setLocalDescription();rtcSend(id,'desc',pc.localDescription.toJSON());}
+    catch(e){console.warn('[rtc] negotiate',e);}finally{P.making=false;}
+  };
+  pc.oniceconnectionstatechange=function(){if(pc.iceConnectionState==='failed'){try{pc.restartIce();}catch(e){}}};
+  if(stream&&camOn)attachTo(P);else if(me.id<id)pc.addTransceiver('video',{direction:'recvonly'});
+  return P;
+}
+function attachTo(P){
+  var t=stream&&stream.getVideoTracks()[0];if(!t)return;
+  if(P.sender)P.sender.replaceTrack(t).catch(function(){});else P.sender=P.pc.addTrack(t,stream);
+}
+function attachAll(){Object.keys(peers).forEach(function(id){attachTo(peers[id]);});}
+function detachAll(){Object.keys(peers).forEach(function(id){var P=peers[id];if(P.sender)P.sender.replaceTrack(null).catch(function(){});});}
+function closePeer(id){var P=peers[id];if(!P)return;try{P.pc.close();}catch(e){}delete peers[id];var t=tiles[id];if(t){var v=t.querySelector('video');if(v){v.srcObject=null;}t.classList.remove('hasvid');}}
+function onRtc(m){
+  var P=getPeer(m.id);if(!P)return;
+  P.chain=P.chain.then(async function(){
+    var pc=P.pc;
+    try{
+      if(m.k==='desc'){
+        var d=m.d,collision=d.type==='offer'&&(P.making||pc.signalingState!=='stable');
+        P.ignore=!P.polite&&collision;if(P.ignore)return;
+        await pc.setRemoteDescription(d);
+        while(P.iceQ.length){try{await pc.addIceCandidate(P.iceQ.shift());}catch(e){}}
+        if(d.type==='offer'){await pc.setLocalDescription();rtcSend(m.id,'desc',pc.localDescription.toJSON());}
+      }else if(m.k==='ice'){
+        if(!pc.remoteDescription){P.iceQ.push(m.d);return;}
+        try{await pc.addIceCandidate(m.d);}catch(e){if(!P.ignore)console.warn('[rtc] ice',e);}
+      }
+    }catch(e){console.warn('[rtc]',e);}
+  });
+}
+function sendCam(){net&&joined&&net.send({t:'cam',id:me.id,name:me.name,role:me.role,cam:camOn});}
+function videoEl(t){
+  var v=t.querySelector('video');
+  if(!v){v=document.createElement('video');v.playsInline=true;v.muted=true;v.autoplay=true;t.insertBefore(v,t.firstChild);}
+  return v;
+}
+function showRemote(id){
+  var t=tiles[id],P=peers[id],r=roster[id];if(!t)return;
+  var on=!!(r&&r.cam&&P&&P.stream&&P.stream.getVideoTracks().length);
+  var v=videoEl(t);
+  if(on){if(v.srcObject!==P.stream)v.srcObject=P.stream;var pr=v.play();if(pr&&pr.catch)pr.catch(function(){});}
+  t.classList.toggle('hasvid',on);
+}
+function showLocal(){
+  var t=tiles[me.id];if(!t)return;var v=videoEl(t);v.classList.add('mirror');
+  if(camOn&&stream){if(v.srcObject!==stream)v.srcObject=stream;var pr=v.play();if(pr&&pr.catch)pr.catch(function(){});}else v.srcObject=null;
+  t.classList.toggle('hasvid',!!(camOn&&stream));
+}
+
 /* ---------- stage ---------- */
 var tiles={};
 function order(){var ids=Object.keys(roster).sort(function(a,b){return roster[a].joined-roster[b].joined;});return [me.id].concat(ids);}
@@ -130,6 +204,7 @@ function renderStage(){
     st.insertBefore(t,$('cc'));
   });
   Object.keys(tiles).forEach(function(id){if(!seen[id]){tiles[id].remove();delete tiles[id];}});
+  ids.forEach(function(id){if(id===me.id)showLocal();else showRemote(id);});
   var n=ids.length,c=n<=1?1:n<=4?2:n<=9?3:4;
   st.style.setProperty('--cols',c);st.style.setProperty('--rows',Math.ceil(n/c));st.style.setProperty('--cols2',n<=2?1:2);
   $('bdn').textContent=n;
@@ -167,7 +242,8 @@ function onSay(m){
   if(me.role==='deaf'){queue.push({p:p,text:text});updQ();pump();}
   else if(m.signed){
     $('lastsg').hidden=false;$('lastwho').textContent=T('heardBy')+' · '+p.n;$('lasttxt').textContent=text;
-    if(voiceOn)speak(text,m.lang==='en'?'en':'vi');
+    lastSigned={text:text,lang:m.lang==='en'?'en':'vi'};
+    if(voiceOn)speak(lastSigned.text,lastSigned.lang);
   }
 }
 function sendSay(text,signed,lang){
@@ -225,7 +301,7 @@ function previewSign(g){
 }
 
 /* ---------- Deaf: camera + hand tracking + postures ---------- */
-var vid,cvr,cctx,stream=null,camOn=false,camStarting=false,hands=null,inflight=false,lastDet=0,lastRes=null,raf=0;
+var handsReady=false,vid,cvr,cctx,stream=null,camOn=false,camStarting=false,hands=null,inflight=false,lastDet=0,lastRes=null,raf=0;
 var sgState='idle',seqG=[],presetI=0,cand=null,candSince=0,locked=false,lostSince=0,finT=0,HOLD=900;
 function setStatus(t){$('st').textContent=t;}
 function camUI(){
@@ -242,18 +318,20 @@ async function startCam(){
   vid.srcObject=stream;try{await vid.play();}catch(e){}
   for(var i=0;i<50&&!vid.videoWidth;i++)await sleep(100);
   if(!vid.videoWidth){stopCam();camMsg(T('camNone'));return;}
-  camOn=true;camStarting=false;camUI();
+  camOn=true;camStarting=false;camUI();showLocal();attachAll();sendCam();
+  if(me.role!=='deaf')return;
   $('camw').style.setProperty('--ar',(vid.videoWidth/vid.videoHeight).toFixed(3));
   cancelAnimationFrame(raf);raf=requestAnimationFrame(loop);
   setStatus(T('stLoad'));
-  try{if(!hands)hands=await import('./hands.js');await hands.loadModel();setStatus(T('stShow'));window.__sbMode=hands.getMode();}
-  catch(e){console.error('[hands]',e);hands=null;setStatus(T('modelFail'));}
+  try{if(!hands)hands=await import('./hands.js');await hands.loadModel();handsReady=true;setStatus(T('stShow'));window.__sbMode=hands.getMode();}
+  catch(e){console.error('[hands]',e);hands=null;handsReady=false;setStatus(T('modelFail'));}
 }
 function stopCam(){
-  camOn=false;camStarting=false;cancelAnimationFrame(raf);
+  var was=camOn;camOn=false;camStarting=false;cancelAnimationFrame(raf);
+  detachAll();
   if(stream){stream.getTracks().forEach(function(t){t.stop();});stream=null;}
   try{vid.srcObject=null;}catch(e){}
-  lastRes=null;cand=null;camUI();showBadge(null,0);
+  lastRes=null;cand=null;camUI();showBadge(null,0);showLocal();if(was)sendCam();
 }
 function loop(){
   raf=requestAnimationFrame(loop);
@@ -271,9 +349,9 @@ function loop(){
     cctx.restore();
   }
   var now=performance.now();
-  if(hands&&!inflight&&now-lastDet>50&&vid.readyState>=2){
+  if(hands&&handsReady&&!inflight&&now-lastDet>50&&vid.readyState>=2){
     inflight=true;lastDet=now;
-    hands.detect(vid,now).then(function(r){inflight=false;lastRes=r;onHands(r,performance.now());}).catch(function(e){inflight=false;console.warn('[detect]',e);});
+    hands.detect(vid,now).then(function(r){inflight=false;if(!r)return;lastRes=r;onHands(r,performance.now());}).catch(function(e){inflight=false;console.warn('[detect]',e);});
   }
 }
 function pickPosture(r){
@@ -399,7 +477,7 @@ function refreshLang(){
 /* ---------- join / leave ---------- */
 function setupRole(){
   var d=me.role==='deaf';
-  $('bmic').hidden=d;$('bvoice').hidden=d;$('bcam').hidden=!d;
+  $('bmic').hidden=d;$('bvoice').hidden=d;$('bcam').hidden=false;
   curTab=d?'sign':'talk';renderTabs();tab(curTab);
   renderGuide($('gg'));renderSamples();renderQP();renderLib('');setSpeaker(null);micUI();camUI();
   $('bvoice').classList.toggle('on',voiceOn);$('voiceTgl').setAttribute('aria-pressed',String(voiceOn));
@@ -413,15 +491,17 @@ function doJoin(){
   unlockTTS();joined=true;joinedAt=Date.now();
   $('pre').hidden=true;$('app').hidden=false;paint();
   setupRole();renderStage();SBI.apply();
+  Object.keys(roster).forEach(function(id){if(me.id<id)getPeer(id);});
   if(netSt.mqtt==='connected'||net)sendHi(false);
   setInterval(sendPing,12000);
-  setInterval(function(){var t=Date.now(),ch=false;Object.keys(roster).forEach(function(id){if(t-roster[id].seen>36000){toast(T('left',{n:roster[id].name}));delete roster[id];ch=true;}});if(ch)renderStage();},5000);
+  setInterval(function(){var t=Date.now(),ch=false;Object.keys(roster).forEach(function(id){if(t-roster[id].seen>36000){toast(T('left',{n:roster[id].name}));delete roster[id];closePeer(id);ch=true;}});if(ch)renderStage();},5000);
   if(me.role==='deaf'){setStatus(T('camAsk'));startCam();}
   if(window.innerWidth<=900)panel(true);
 }
 function leave(){
+  stopCam();Object.keys(peers).forEach(closePeer);
   try{net&&net.send({t:'bye',id:me.id});}catch(e){}
-  stopCam();setMic(false);try{speechSynthesis.cancel();}catch(e){}
+  setMic(false);try{speechSynthesis.cancel();}catch(e){}
   setTimeout(function(){try{net&&net.close();}catch(e){}location.href='../';},300);
 }
 
@@ -453,6 +533,8 @@ function init(){
   $('bmic').onclick=function(){setMic(!micWanted);};
   $('micbig').onclick=function(){setMic(!micWanted);};
   function setVoice(v){voiceOn=v;$('bvoice').classList.toggle('on',v);$('bvoice').innerHTML=ic(v?'volume':'volumeoff');$('voiceTgl').setAttribute('aria-pressed',String(v));if(!v){try{speechSynthesis.cancel();}catch(e){}}else unlockTTS();toast(v?T('voiceOn'):T('voiceOff'));}
+  $('vreplay').onclick=function(){if(lastSigned)speak(lastSigned.text,lastSigned.lang);};
+  $('vtest').onclick=function(){speak(tlang==='vi'?'Xin chào, đây là giọng đọc của SignBridge.':'Hello, this is the SignBridge voice.',tlang);};
   $('bvoice').onclick=function(){setVoice(!voiceOn);};$('voiceTgl').onclick=function(){setVoice(!voiceOn);};
   $('bcam').onclick=function(){if(camOn||camStarting){stopCam();resetSign();setStatus('');}else startCam();};
   $('camon').onclick=startCam;
@@ -472,7 +554,7 @@ function init(){
   av.onclick=function(e){if(!e.target.closest('.spd'))replay();};
   av.onkeydown=function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();replay();}};
   var tick=function(){$('clk').textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});};tick();setInterval(tick,30000);
-  window.addEventListener('pagehide',function(){try{net&&net.send({t:'bye',id:me.id});}catch(e){}stopCam();});
+  window.addEventListener('pagehide',function(){stopCam();try{net&&net.send({t:'bye',id:me.id});}catch(e){}});
   document.addEventListener('visibilitychange',function(){if(!document.hidden&&joined)sendPing();});
   requestAnimationFrame(frame);
   startNet();

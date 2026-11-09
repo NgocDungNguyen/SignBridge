@@ -15,6 +15,7 @@ export function loadModel(forceCpu){
   return loading;
 }
 export async function detect(video,ts){
+  if(!model)return null;
   try{return model.detectForVideo(video,ts);}
   catch(e){ if(mode==='GPU'){console.warn('[hands] GPU inference failed, switching to CPU',e);try{model.close();}catch(_){}model=null;loading=null;await loadModel(true);return model.detectForVideo(video,ts);} throw e; }
 }

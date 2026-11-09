@@ -18,7 +18,7 @@ Chrome (Android/desktop) cho kết quả tốt nhất với micro. Safari vẫn 
 
 ## Cách hoạt động
 - **Đồng bộ phòng**: MQTT qua WebSocket (broker công cộng HiveMQ → EMQX → Mosquitto, tự chuyển nếu một cái lỗi). Chỉ gửi tên, vai trò và câu chữ. Không có tài khoản, không lưu dữ liệu. Thêm `?broker=wss://...` để đổi broker khi thử nghiệm.
-- **Camera**: MediaPipe HandLandmarker chạy ngay trong trình duyệt (tệp nằm ở `vendor/mediapipe`). Video không rời khỏi máy.
+- **Camera**: MediaPipe HandLandmarker chạy ngay trong trình duyệt (tệp nằm ở `vendor/mediapipe`). Hình camera được chia sẻ ngang hàng (WebRTC, tín hiệu qua cùng kênh phòng) cho người trong phòng, không qua máy chủ và không lưu. Dùng STUN của Google và TURN công cộng (openrelay); mạng quá chặt có thể không thấy hình.
 - **Cử chỉ → câu (bản demo)**: 8 cử chỉ tay (✋👍👌☝️✌️✊🤙🤟) gắn với 8 câu mẫu trong `assets/core.js` (`PRESETS`). Chưa phải ký hiệu tiếng Việt chuẩn.
 - **Giọng nói**: Web Speech API (nhận giọng nói) và SpeechSynthesis (đọc to; tự chọn giọng `vi-VN` hoặc `en-US`).
 

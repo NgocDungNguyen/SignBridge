@@ -148,3 +148,8 @@
 @media (max-width:900px){.app:not(.nopanel) .stage .hint{display:none}}
 
 @media (max-width:900px){.camw.rm{width:min(100%,calc(30vh * var(--ar,1.333)))}}
+
+/* shared video in tiles */
+.tile video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;background:#202124}
+.tile.hasvid video{display:block}.tile video.mirror{transform:scaleX(-1)}
+.tile.hasvid .av{display:none}

@@ -15,7 +15,7 @@
     guideTitle:'Hướng dẫn cử chỉ (bản demo)',
     guideSub:'Camera nhận 8 cử chỉ tay. Giữ mỗi cử chỉ khoảng 1 giây. Mỗi cử chỉ được gắn với một câu mẫu; chưa phải ký hiệu chuẩn.',
     guideHold:'Giữ cử chỉ khoảng 1 giây',
-    privacy:'Camera chỉ xử lý trên máy của bạn. Video không được gửi đi; mọi người chỉ nhận câu chữ bạn bấm Gửi.',
+    privacy:'Nhận diện cử chỉ chạy ngay trên máy bạn. Hình camera được gửi trực tiếp (ngang hàng) tới những người trong phòng, không lưu lại; bạn có thể tắt camera bất cứ lúc nào.',
     st_conn:'Đang kết nối…',st_on:'Đã kết nối',st_local:'Chỉ trong trình duyệt này',st_off:'Chưa kết nối máy chủ',
     people:'{n} người',inRoom:'Trong phòng',you:'Bạn',deafBadge:'ký hiệu',hearBadge:'nghe',
     joined:'{n} đã vào phòng',left:'{n} đã rời phòng',
@@ -32,6 +32,7 @@
     typePh:'Nhập điều bạn muốn nói',quick:'Câu nhanh',readAloud:'Đọc to tin nhắn ký hiệu',
     voiceOn:'Đã bật giọng đọc',voiceOff:'Đã tắt giọng đọc',capOn:'Đã bật phụ đề',capOff:'Đã tắt phụ đề',
     leave:'Rời phòng',invite:'Mời',linkCopied:'Đã sao chép liên kết phòng',roomHelp:'Gửi mã {code} hoặc liên kết cho bạn bè.',
+    vTest:'Nghe thử giọng đọc',vReplay:'Nghe lại',voiceTap:'Điện thoại chặn âm thanh. Bấm “Nghe lại” để nghe.',
     noVoiceVi:'Thiết bị này chưa có giọng đọc tiếng Việt. Sẽ dùng giọng mặc định.',noVoiceEn:'Thiết bị này chưa có giọng đọc tiếng Anh.',
     mic:'Micro',cam:'Camera',cc:'Phụ đề',sb:'SignBridge',close:'Đóng',
     heardBy:'Tin nhắn ký hiệu',spoken:'nói',
@@ -41,7 +42,7 @@
     badCode:'Mã gồm 6 chữ cái hoặc số',
     f1t:'Nghe → xem ký hiệu',f1s:'Lời nói trở thành chữ, rồi nhân vật 3D ký hiệu, kèm tên người nói.',
     f2t:'Ký hiệu → chữ và giọng nói',f2s:'Camera nhận cử chỉ tay, ghép thành câu để cả phòng đọc hoặc nghe.',
-    f3t:'Video ở lại trên máy bạn',f3s:'Nhận diện bàn tay chạy trong trình duyệt. Chỉ câu chữ được gửi đi.',
+    f3t:'Nhận diện ngay trên máy bạn',f3s:'Hình camera chỉ gửi trực tiếp cho người trong phòng, không qua máy chủ và không lưu.',
     foot:'Bản nguyên mẫu dự thi EdiTech – CreativAI 2026–2027. Giọng nói và ký hiệu chỉ để minh họa, chưa phải ký hiệu chuẩn của người Điếc Việt Nam.'
   },
   en:{
@@ -58,7 +59,7 @@
     guideTitle:'Gesture guide (demo)',
     guideSub:'The camera recognises 8 hand gestures. Hold each one for about 1 second. Each gesture is wired to a sample sentence; they are not real sign language.',
     guideHold:'Hold a gesture for about 1 second',
-    privacy:'The camera is processed on your device only. Video is never sent; others only receive the sentence you press Send on.',
+    privacy:'Gesture recognition runs on your device. Your camera picture is sent directly (peer-to-peer) to the others in the room and is not stored; you can turn the camera off at any time.',
     st_conn:'Connecting…',st_on:'Connected',st_local:'This browser only',st_off:'Server not reachable',
     people:'{n} people',inRoom:'In the room',you:'You',deafBadge:'signs',hearBadge:'hears',
     joined:'{n} joined',left:'{n} left',
@@ -75,6 +76,7 @@
     typePh:'Type what you want to say',quick:'Quick phrases',readAloud:'Read signed messages aloud',
     voiceOn:'Voice on',voiceOff:'Voice off',capOn:'Captions on',capOff:'Captions off',
     leave:'Leave',invite:'Invite',linkCopied:'Room link copied',roomHelp:'Send the code {code} or the link to your friends.',
+    vTest:'Test the voice',vReplay:'Play again',voiceTap:'The phone blocked the sound. Tap “Play again” to hear it.',
     noVoiceVi:'No Vietnamese voice found on this device. Using the default voice.',noVoiceEn:'No English voice found on this device.',
     mic:'Microphone',cam:'Camera',cc:'Captions',sb:'SignBridge',close:'Close',
     heardBy:'Signed message',spoken:'says',
@@ -84,7 +86,7 @@
     badCode:'The code has 6 letters or digits',
     f1t:'Hear → watch signs',f1s:'Speech becomes text, then a 3D avatar signs it, with the speaker’s name.',
     f2t:'Signs → text and voice',f2s:'The camera reads hand gestures and builds a sentence everyone can read or hear.',
-    f3t:'Video stays on your device',f3s:'Hand tracking runs in the browser. Only the sentence text is sent.',
+    f3t:'Recognition runs on your device',f3s:'Camera video goes directly to people in the room, not through a server, and is never stored.',
     foot:'Prototype for EdiTech – CreativAI 2026–2027. Speech and signs are for illustration only, not real Vietnamese Sign Language.'
   }};
   var lang='vi';
