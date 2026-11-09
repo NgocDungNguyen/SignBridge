@@ -1,0 +1,377 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SignBridge · Demo lớp 8B1</title><meta name="description" content="SignBridge: cầu nối ký hiệu cho lớp học trực tuyến. Bản demo nguyên mẫu (giọng nói và nhận diện ký hiệu được mô phỏng).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="assets/app.css">
+</head><body>
+<div class="app" id="app">
+  <header class="top">
+    <a class="home" href="./" aria-label="Trang chủ"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>Trang chủ</a>
+    <div class="t"><b>Lớp 8B1</b><span id="clk2"></span></div>
+    <button class="demo" id="demo" aria-label="Play demo"><span id="demoI" data-i="play"></span><span id="demoT">Demo</span></button>
+  </header>
+
+  <main class="main">
+    <section class="stage" id="stage" aria-label="Participants">
+      <div class="cc" id="cc" aria-live="polite"></div>
+    </section>
+
+    <aside class="panel" id="panel" aria-label="SignBridge">
+      <div class="ph">
+        <div class="logo"><span data-i="hand"></span></div>
+        <h2>SignBridge</h2>
+        <button class="ib" id="xp" aria-label="Close"><span data-i="close"></span></button>
+      </div>
+      <div class="tabs" role="tablist" id="tabs">
+        <button role="tab" aria-selected="true" data-t="watch">Xem</button>
+        <button role="tab" aria-selected="false" data-t="sign">Ký hiệu</button>
+        <button role="tab" aria-selected="false" data-t="lib">Thư viện</button>
+        <button role="tab" aria-selected="false" data-t="log">Tin nhắn</button>
+      </div>
+      <div class="views" id="views">
+
+        <section class="view on" id="v-watch">
+          <div class="avw" id="avw">
+            <canvas id="cv" aria-label="Signing avatar"></canvas>
+            <div class="pill" id="pill"><u>·</u><span>Đang chờ</span></div>
+            <div class="q" id="q" hidden></div>
+            <div class="spd" id="spd" role="group" aria-label="Signing speed">
+              <button data-s="0.75" aria-pressed="false">0.75×</button>
+              <button data-s="1" aria-pressed="true">1×</button>
+              <button data-s="1.5" aria-pressed="false">1.5×</button>
+            </div>
+          </div>
+          <div class="sc" id="sc"><u id="scu">·</u><div><b id="scn">Trực tiếp</b><p id="sct">Lời nói trong lớp sẽ hiện ở đây.</p></div></div>
+          <div class="chips" id="chips" aria-label="Signs"></div>
+          <div class="demo-box">
+            <h3>Mô phỏng: ai đang nói</h3>
+            <div class="ppl" id="ppl"></div>
+            <form class="say" id="say">
+              <input id="txt" type="text" autocomplete="off" placeholder="Nhập điều họ nói" aria-label="What the selected person says">
+              <button class="fab" aria-label="Send"><span data-i="send"></span></button>
+            </form>
+            <div class="qp" id="qp"></div>
+          </div>
+        </section>
+
+        <section class="view" id="v-sign">
+          <div class="camw room" id="camw">
+            <canvas class="feed" id="cv2" aria-label="Your camera with hand tracking"></canvas>
+            <div class="rec"><i></i>Camera của bạn</div>
+            <div class="st" id="st">Đưa hai tay vào khung hình</div>
+          </div>
+          <div class="opts">
+            <div class="lang" id="lang"><button data-l="vi" aria-pressed="true">VI</button><button data-l="en" aria-pressed="false">EN</button></div>
+            <button class="ib" id="vbtn" aria-label="Speak aloud"><span data-i="volume"></span></button>
+          </div>
+          <div class="seq" id="seq" hidden></div>
+          <button class="btn o" id="cancel" hidden>Hủy</button>
+          <div class="sent" id="sent" hidden>
+            <div class="lbl"><span data-i="hand"></span>Tin nhắn của bạn</div>
+            <p id="sentT"></p>
+            <div class="row">
+              <button class="btn o" id="redo"><span data-i="undo"></span>Làm lại</button>
+              <button class="btn f" id="submit"><span data-i="send"></span>Gửi</button>
+            </div>
+          </div>
+          <div class="start" id="start">
+            <button class="btn f" id="go"><span data-i="hand"></span>Bắt đầu ký hiệu</button>
+            <div class="samples" id="samples" aria-label="Sample phrases"></div>
+          </div>
+        </section>
+
+        <section class="view" id="v-lib">
+          <label class="find"><span data-i="search"></span><input id="fq" type="search" placeholder="Tìm ký hiệu" aria-label="Search signs"></label>
+          <div class="lib" id="lib"></div>
+        </section>
+
+        <section class="view" id="v-log"><div class="log" id="log"><div class="empty">Chưa có tin nhắn</div></div></section>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="ctl">
+    <div class="ci"><span id="clk"></span><i></i><span>Lớp 8B1</span></div>
+    <div class="cm">
+      <div class="pg" id="pgmic"><button class="cb m" id="bmic" aria-label="Microphone (SignBridge voice)"><span data-i="mic"></span></button><button class="cb c" aria-label="Audio settings"><span data-i="caret"></span></button></div>
+      <div class="pg" id="pgcam"><button class="cb m" id="bcam" aria-label="Camera"><span data-i="cam"></span></button><button class="cb c" aria-label="Video settings"><span data-i="caret"></span></button></div>
+      <button class="cb on" id="bcc" aria-label="Captions"><span data-i="cc"></span></button>
+      <button class="cb rx" id="brx" aria-label="Reactions"><span data-i="mood"></span></button>
+      <button class="cb pr" id="bpr" aria-label="Present now"><span data-i="present"></span></button>
+      <button class="cb" id="bhand" aria-label="Raise hand"><span data-i="hand"></span></button>
+      <button class="cb mo" id="bmo" aria-label="More options"><span data-i="more"></span></button>
+      <button class="cb sbm jsb" aria-label="SignBridge"><span class="lg28" data-i="hand"></span></button>
+      <button class="cb end" id="bend" aria-label="Leave call"><span data-i="end"></span></button>
+    </div>
+    <div class="cr2">
+      <button class="cb" id="binfo" aria-label="Meeting details"><span data-i="info"></span></button>
+      <button class="cb" id="bppl" aria-label="People"><span data-i="people"></span><span class="bd">4</span></button>
+      <button class="cb" id="bchat" aria-label="Chat"><span data-i="chat"></span></button>
+      <button class="cb jsb on" id="bsb" aria-label="SignBridge add-on"><span class="lg28" data-i="hand"></span></button>
+    </div>
+  </footer>
+</div>
+<script src="assets/core.js"></script>
+<script>
+/* ===== 5. APP: participants, captions, speaker queue ===== */
+const $=id=>document.getElementById(id),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const IC={
+ mic:'M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z',
+ micoff:'M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z',
+ cam:'M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z',
+ camoff:'M21 6.5l-4 4V7c0-.55-.45-1-1-1H9.82L21 17.18V6.5zM3.27 2L2 3.27 4.73 6H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.21 0 .39-.08.54-.18L19.73 21 21 19.73 3.27 2z',
+ cc:'M19 4H5c-1.11 0-2 .9-2 2v12c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-8 7H9.5v-.5h-2v3h2V13H11v1c0 .55-.45 1-1 1H7c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1zm7 0h-1.5v-.5h-2v3h2V13H18v1c0 .55-.45 1-1 1h-3c-.55 0-1-.45-1-1v-4c0-.55.45-1 1-1h3c.55 0 1 .45 1 1v1z',
+ mood:'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z',
+ present:'M21 3H3c-1.11 0-2 .89-2 2v14c0 1.1.89 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.11-.9-2-2-2zm0 16.02H3V4.98h18v14.04zM10 12H8l4-4 4 4h-2v4h-4v-4z',
+ hand:'M23 5.5V20c0 2.2-1.8 4-4 4h-7.3c-1.08 0-2.1-.43-2.85-1.19L1 14.83s1.26-1.23 1.3-1.25c.22-.19.49-.29.79-.29.22 0 .42.06.6.16.04.01 4.31 2.46 4.31 2.46V4c0-.83.67-1.5 1.5-1.5S11 3.17 11 4v7h1V1.5c0-.83.67-1.5 1.5-1.5S15 .67 15 1.5V11h1V2.5c0-.83.67-1.5 1.5-1.5S19 1.67 19 2.5V11h1V5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z',
+ more:'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z',
+ caret:'M12 8l-6 6 1.41 1.41L12 10.83l4.59 4.58L18 14z',
+ end:'M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08c-.18-.17-.29-.42-.29-.7 0-.28.11-.53.29-.71C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67c.18.18.29.43.29.71 0 .28-.11.53-.29.71l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z',
+ info:'M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z',
+ people:'M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z',
+ chat:'M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H5.17L4 17.17V4h16v12z',
+ close:'M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z',
+ play:'M8 5v14l11-7z',stop:'M6 6h12v12H6z',send:'M2.01 21L23 12 2.01 3 2 10l15 2-15 2z',
+ volume:'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z',
+ volumeoff:'M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z',
+ search:'M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z',
+ undo:'M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z'};
+const ic=n=>'<svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="'+(IC[n]||'')+'"/></svg>';
+const paint=root=>(root||document).querySelectorAll('[data-i]').forEach(e=>{e.innerHTML=ic(e.dataset.i);});
+
+const PEOPLE={
+ lan:{n:'Cô Lan',ini:'L',c:'#1a73e8',r:'teacher'},
+ minh:{n:'Minh',ini:'M',c:'#188038',r:'student'},
+ sarah:{n:'Sarah',ini:'S',c:'#b06000',r:'guest'},
+ you:{n:'Bạn',ini:'B',c:'#a142f4',r:'student'}};
+const QP={
+ lan:['Chào cả lớp, hôm nay chúng ta học bài mới.','Em có hiểu bài không?','Bài tập nộp vào ngày mai nhé.','Cô sẽ nói chậm hơn.'],
+ minh:['Cô ơi, em có câu hỏi.','Mình chia sẻ màn hình nhé.','Bạn làm xong bài tập chưa?','Em chưa hiểu bài ạ.'],
+ sarah:['Welcome everyone, please turn on your camera.','Do you have any questions?','Today we will learn about energy.','Great work, thank you!']};
+
+let queue=[],busy=false,spd=1,tok=0,lastMsg=null,ccOn=true,mute=false,camOff=false,who='lan',curTab='watch',demoOn=false,demoRun=0;
+const rec={state:'idle',tok:0,i:0,lang:'vi',next:0};
+
+function buildStage(){
+  const st=$('stage');
+  ['lan','minh','sarah','you'].forEach(id=>{
+    const p=PEOPLE[id],t=document.createElement('div');
+    t.className='tile'+(id==='you'?' you room':'');t.id='t-'+id;t.style.setProperty('--c',p.c);
+    t.innerHTML=(id==='you'?'<canvas class="feed" id="cv3" aria-label="Your camera"></canvas>':'')
+      +'<div class="av"><span>'+p.ini+'</span></div>'
+      +(id==='you'?'<div class="chip-h">'+ic('hand')+'<span id="hchip">Đang ký hiệu</span></div>':'')
+      +'<div class="mu">'+ic('micoff')+'</div><div class="spk"><b></b><b></b><b></b></div><div class="nm">'+p.n+'</div>';
+    st.insertBefore(t,$('cc'));
+  });
+}
+function toast(t){const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);requestAnimationFrame(()=>e.classList.add('on'));setTimeout(()=>e.classList.remove('on'),1800);setTimeout(()=>e.remove(),2200);}
+
+/* captions over the stage; the Deaf student's submitted message uses the same rows, highlighted */
+let ccRows=[],ccTimer=0;
+function addCC(p,text,signed){
+  const r=document.createElement('div');r.className='cr'+(signed?' sgn':'');r.style.setProperty('--c',p.c);
+  r.innerHTML='<u></u><div class="w"><b><span></span>'+(signed?ic('hand'):'')+'</b><p></p></div>';
+  r.querySelector('u').textContent=p.ini;r.querySelector('b span').textContent=p.n;r.querySelector('p').textContent=text;
+  $('cc').appendChild(r);ccRows.push(r);
+  while(ccRows.length>2)ccRows.shift().remove();
+  clearTimeout(ccTimer);ccTimer=setTimeout(clearCC,signed?9000:7000);
+}
+function clearCC(){ccRows.forEach(r=>r.remove());ccRows=[];}
+
+function addLog(p,text,signed){
+  const l=$('log');if(l.querySelector('.empty'))l.innerHTML='';
+  const d=document.createElement('div');d.className='ln';d.style.setProperty('--c',p.c);
+  const u=document.createElement('u');u.textContent=p.ini;
+  const w=document.createElement('div'),h=document.createElement('div');h.className='h';
+  const b=document.createElement('b');b.textContent=p.n;h.append(b);
+  if(signed){const s=document.createElement('span');s.className='sg';s.innerHTML=ic('hand');h.append(s);}
+  const tm=document.createElement('time');tm.textContent=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});h.append(tm);
+  const pp=document.createElement('p');pp.textContent=text;w.append(h,pp);d.append(u,w);l.appendChild(d);
+  if(curTab==='log')$('views').scrollTop=1e9;
+}
+function setSpeaker(p,text){
+  const avw=$('avw');avw.style.setProperty('--c',p?p.c:'transparent');avw.classList.toggle('on',!!p);
+  const pill=$('pill');pill.style.setProperty('--c',p?p.c:'#5f6368');
+  pill.innerHTML=p?'<u>'+p.ini+'</u><span></span>':'<u>·</u><span>Đang chờ</span>';
+  if(p)pill.querySelector('span').textContent=p.n;
+  $('sc').style.setProperty('--c',p?p.c:'#9aa0a6');
+  $('scu').textContent=p?p.ini:'·';$('scn').textContent=p?p.n:'Trực tiếp';$('sct').textContent=text||'Lời nói trong lớp sẽ hiện ở đây.';
+  pill.style.opacity=p?1:0;
+}
+function setChips(list){
+  const c=$('chips');c.innerHTML='';
+  if(!list.length){c.innerHTML='<span class="chip fs">chỉ có phụ đề</span>';return;}
+  list.forEach(g=>{const s=document.createElement('span');s.className='chip'+(g.startsWith('SPELL:')?' fs':'');s.textContent=label(g);c.appendChild(s);});
+}
+function updQ(){const q=$('q');q.hidden=!queue.length;q.textContent='+'+queue.length+' câu tiếp';}
+async function signs(list,my){
+  const chips=[...$('chips').children],box=$('chips');
+  for(let i=0;i<list.length;i++){
+    if(my!==tok)return;
+    chips.forEach((c,k)=>c.classList.toggle('now',k===i));
+    const ch=chips[i];if(ch)box.scrollLeft=ch.offsetLeft-box.clientWidth/2+ch.offsetWidth/2;
+    const sp=list[i].startsWith('SPELL:');
+    for(const k of keysFor(list[i])){if(my!==tok)return;avRig.go(k,(sp?250:400)/spd);await sleep((sp?300:520)/spd);}
+    await sleep(110/spd);
+  }
+  chips.forEach(c=>c.classList.remove('now'));
+}
+async function deliver(m,my){
+  const p=PEOPLE[m.who],t=$('t-'+m.who);
+  setSpeaker(p,m.text);
+  if(!m.replay){addLog(p,m.text);if(ccOn)addCC(p,m.text,false);}
+  if(curTab!=='watch'){if(rec.state==='idle')tab('watch');else document.querySelector('#tabs [data-t=watch]').classList.add('dot');}
+  const gl=toGloss(m.text,p.r);setChips(gl);
+  t.classList.add('speaking');setTimeout(()=>t.classList.remove('speaking'),Math.max(1600,m.text.length*65)/spd);
+  await sleep(250);await signs(gl,my);
+  if(my===tok)avRig.go(clone(REST),500/spd);
+}
+async function pump(){
+  if(busy)return;busy=true;const my=tok;
+  while(queue.length&&my===tok){const m=queue.shift();updQ();lastMsg=m;await deliver(m,my);await sleep(350);}
+  if(my===tok)busy=false;
+}
+function say(id,text,replay){text=(text||'').trim();if(!text)return;queue.push({who:id,text,replay});updQ();pump();}
+async function settle(){while(busy||queue.length)await sleep(150);}
+function preview(g){
+  if(busy)return;tab('watch');busy=true;const my=tok;
+  setSpeaker({n:'Thư viện ký hiệu',ini:'✦',c:'#a142f4'},label(g));setChips([g]);
+  signs([g],my).then(()=>{if(my===tok){avRig.go(clone(REST),500);busy=false;}});
+}
+
+/* ===== 6. YOU: camera -> sign sequence -> sentence -> Submit -> overlay for everyone ===== */
+const recSt=t=>{$('st').textContent=t;};
+function speak(t,l){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang=l==='vi'?'vi-VN':'en-US';speechSynthesis.speak(u);}catch(e){}}
+function chipText(){$('hchip').textContent=$('t-you').classList.contains('signing')?'Đang ký hiệu':'Giơ tay';}
+function resetSignUI(){
+  $('start').hidden=false;$('sent').hidden=true;$('seq').hidden=true;$('seq').innerHTML='';$('cancel').hidden=true;
+  camRig.lm=false;$('t-you').classList.remove('signing');chipText();camRig.go(clone(CAM_REST),500);recSt('Đưa hai tay vào khung hình');
+}
+function addSeq(g){const c=document.createElement('span');c.className='chip'+(g.startsWith('SPELL:')?' fs':'');c.textContent=label(g);$('seq').appendChild(c);}
+async function startSign(i){
+  if(camOff){toast('Hãy bật camera trước');return;}
+  if(rec.state!=='idle'){return;}
+  if(i==null){i=rec.next;rec.next=(rec.next+1)%PRESETS.length;}
+  rec.i=i;const my=++rec.tok;rec.state='signing';
+  $('start').hidden=true;$('sent').hidden=true;$('seq').innerHTML='';$('seq').hidden=false;$('cancel').hidden=false;
+  $('t-you').classList.add('signing');chipText();camRig.lm=true;recSt('Đang đọc ký hiệu');
+  const Pz=PRESETS[i];
+  await sleep(500);
+  for(let k=0;k<Pz.s.length;k++){
+    for(const kf of keysFor(Pz.s[k])){if(my!==rec.tok)return;camRig.go(kf,400);await sleep(540);}
+    if(my!==rec.tok)return;
+    addSeq(Pz.s[k]);await sleep(160);
+  }
+  if(my!==rec.tok)return;
+  camRig.go(clone(CAM_REST),500);rec.state='think';recSt('Đang hiểu câu');
+  const th=document.createElement('span');th.className='chip load';th.textContent='···';$('seq').appendChild(th);
+  await sleep(1000);if(my!==rec.tok)return;
+  th.remove();camRig.lm=false;$('t-you').classList.remove('signing');chipText();
+  rec.state='review';recSt('Kiểm tra tin nhắn');$('cancel').hidden=true;
+  $('sentT').textContent=Pz[rec.lang];$('sent').hidden=false;
+  setTimeout(()=>{$('views').scrollTop=1e9;},50);
+}
+function cancelSign(){rec.tok++;rec.state='idle';resetSignUI();}
+function redoSign(){const i=rec.i;rec.tok++;rec.state='idle';resetSignUI();startSign(i);}
+function submit(){
+  if(rec.state!=='review')return;
+  const t=PRESETS[rec.i][rec.lang],p=PEOPLE.you;rec.tok++;rec.state='idle';resetSignUI();
+  addLog(p,t,true);addCC(p,t,true);
+  const tl=$('t-you');tl.classList.add('speaking');setTimeout(()=>tl.classList.remove('speaking'),Math.max(1800,t.length*70));
+  if(!mute)speak(t,rec.lang);
+  toast('Đã gửi tới cả lớp');
+}
+async function waitFor(f,ms){const t=Date.now();while(!f()&&Date.now()-t<ms)await sleep(120);}
+
+function resetAll(){
+  tok++;queue=[];busy=false;demoRun++;demoOn=false;updQ();
+  rec.tok++;rec.state='idle';resetSignUI();
+  avRig.go(clone(REST),400);setSpeaker(null);$('chips').innerHTML='';clearCC();
+  $('log').innerHTML='<div class="empty">Chưa có tin nhắn</div>';
+  document.querySelectorAll('.tile').forEach(t=>t.classList.remove('speaking'));
+  $('demo').classList.remove('on');$('demoT').textContent='Demo';$('demoI').innerHTML=ic('play');
+  try{speechSynthesis.cancel();}catch(e){}
+}
+</script>
+<script>
+/* ===== 7. tabs, controls, demo director, init ===== */
+function tab(n){
+  curTab=n;document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===n));
+  ['watch','sign','lib','log'].forEach(k=>$('v-'+k).classList.toggle('on',k===n));
+  if(n==='watch')document.querySelector('#tabs [data-t=watch]').classList.remove('dot');
+  $('views').scrollTop=0;
+}
+function panel(open){$('app').classList.toggle('nopanel',!open);document.querySelectorAll('.jsb').forEach(b=>b.classList.toggle('on',open));}
+function renderPeople(){
+  const box=$('ppl');box.innerHTML='';
+  ['lan','minh','sarah'].forEach(id=>{const p=PEOPLE[id],b=document.createElement('button');b.type='button';b.style.setProperty('--c',p.c);b.setAttribute('aria-pressed',String(id===who));
+    b.innerHTML='<u>'+p.ini+'</u><span></span>';b.querySelector('span').textContent=p.n;b.onclick=()=>{who=id;renderPeople();renderQP();};box.appendChild(b);});
+}
+function renderQP(){
+  const box=$('qp');box.innerHTML='';
+  QP[who].forEach(t=>{const b=document.createElement('button');b.type='button';b.textContent=t;b.onclick=()=>say(who,t);box.appendChild(b);});
+}
+function renderSamples(){
+  const box=$('samples');box.innerHTML='';
+  PRESETS.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.textContent=p[rec.lang];b.onclick=()=>startSign(i);box.appendChild(b);});
+}
+function renderLib(q){
+  const box=$('lib');box.innerHTML='';q=(q||'').toLowerCase().trim();
+  Object.keys(SIGNS).filter(g=>!q||label(g).includes(q)).forEach(g=>{const b=document.createElement('button');b.type='button';b.textContent=label(g);b.onclick=()=>preview(g);box.appendChild(b);});
+  if(!box.children.length)box.innerHTML='<div class="empty" style="grid-column:1/-1">Không tìm thấy ký hiệu</div>';
+}
+function setMute(m){mute=m;$('pgmic').classList.toggle('off',m);$('bmic').innerHTML=ic(m?'micoff':'mic');$('t-you').classList.toggle('muted',m);$('vbtn').innerHTML=ic(m?'volumeoff':'volume');if(m){try{speechSynthesis.cancel();}catch(e){}}}
+function setCam(off){camOff=off;$('pgcam').classList.toggle('off',off);$('bcam').innerHTML=ic(off?'camoff':'cam');$('t-you').classList.toggle('camoff',off);$('camw').classList.toggle('off',off);if(off&&rec.state!=='idle')cancelSign();}
+
+async function demo(){
+  if(demoOn){resetAll();return;}
+  resetAll();demoOn=true;const my=demoRun,alive=()=>my===demoRun&&demoOn;
+  $('demo').classList.add('on');$('demoT').textContent='Dừng';$('demoI').innerHTML=ic('stop');
+  panel(true);tab('watch');await sleep(700);if(!alive())return;
+  say('lan',QP.lan[0]);say('minh',QP.minh[0]);await settle();if(!alive())return;await sleep(500);
+  say('sarah',QP.sarah[0]);await settle();if(!alive())return;await sleep(400);
+  say('lan',QP.lan[1]);await settle();if(!alive())return;await sleep(500);
+  tab('sign');await sleep(700);if(!alive())return;
+  startSign(0);await waitFor(()=>rec.state==='review',20000);if(!alive())return;await sleep(1800);if(!alive())return;
+  submit();await sleep(3600);if(!alive())return;
+  tab('watch');await sleep(400);say('lan',QP.lan[2]);say('sarah',QP.sarah[3]);await settle();if(!alive())return;await sleep(500);
+  tab('sign');await sleep(700);if(!alive())return;
+  startSign(1);await waitFor(()=>rec.state==='review',20000);if(!alive())return;await sleep(1800);if(!alive())return;
+  submit();await sleep(3200);if(!alive())return;
+  tab('watch');resetDemoBtn();
+}
+function resetDemoBtn(){demoOn=false;$('demo').classList.remove('on');$('demoT').textContent='Demo';$('demoI').innerHTML=ic('play');}
+
+/* wiring */
+$('tabs').onclick=e=>{const b=e.target.closest('button');if(b)tab(b.dataset.t);};
+$('spd').onclick=e=>{const b=e.target.closest('button');if(!b)return;spd=parseFloat(b.dataset.s);[...$('spd').children].forEach(x=>x.setAttribute('aria-pressed',String(x===b)));};
+$('say').onsubmit=e=>{e.preventDefault();const v=$('txt').value;$('txt').value='';say(who,v);};
+$('lang').onclick=e=>{const b=e.target.closest('button');if(!b)return;rec.lang=b.dataset.l;[...$('lang').children].forEach(x=>x.setAttribute('aria-pressed',String(x===b)));renderSamples();if(rec.state==='review')$('sentT').textContent=PRESETS[rec.i][rec.lang];};
+$('go').onclick=()=>startSign(null);$('cancel').onclick=cancelSign;$('redo').onclick=redoSign;$('submit').onclick=submit;
+$('fq').oninput=e=>renderLib(e.target.value);
+$('demo').onclick=demo;$('xp').onclick=()=>panel(false);
+document.querySelectorAll('.jsb').forEach(b=>b.onclick=()=>panel($('app').classList.contains('nopanel')));
+$('bmic').onclick=()=>{setMute(!mute);toast(mute?'Đã tắt giọng đọc. Tin nhắn chỉ hiện dạng chữ':'Đã bật giọng đọc. Tin nhắn được đọc thành tiếng');};
+$('vbtn').onclick=()=>$('bmic').click();
+$('bcam').onclick=()=>{setCam(!camOff);toast(camOff?'Đã tắt camera':'Đã bật camera');};
+$('bcc').onclick=()=>{ccOn=!ccOn;$('bcc').classList.toggle('on',ccOn);if(!ccOn)clearCC();toast(ccOn?'Đã bật phụ đề':'Đã tắt phụ đề');};
+$('bhand').onclick=()=>{const r=$('t-you').classList.toggle('raised');$('bhand').classList.toggle('on',r);chipText();};
+$('bend').onclick=()=>{resetAll();toast('Đã đặt lại bản demo');};
+$('bchat').onclick=()=>{panel(true);tab('log');};
+$('binfo').onclick=()=>toast('Lớp 8B1 · 4 người');
+$('bppl').onclick=()=>toast('4 người trong cuộc họp');
+['brx','bpr','bmo'].forEach(id=>{$(id).onclick=()=>toast('Chức năng này không có trong bản demo');});
+const av=$('avw');av.tabIndex=0;av.setAttribute('role','button');av.setAttribute('aria-label','Replay last signs');
+const replay=()=>{if(lastMsg&&!busy)say(lastMsg.who,lastMsg.text,true);};
+av.onclick=e=>{if(!e.target.closest('.spd'))replay();};
+av.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();replay();}};
+
+/* init */
+(function(){
+  buildStage();paint();renderPeople();renderQP();renderSamples();renderLib('');setSpeaker(null);
+  const tick=()=>{const t=new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});$('clk').textContent=t;$('clk2').textContent=t;};tick();setInterval(tick,30000);
+  panel(window.innerWidth>900||true);
+  requestAnimationFrame(frame);
+})();
+</script>
+</body></html>
