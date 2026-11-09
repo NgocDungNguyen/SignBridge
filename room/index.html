@@ -1,0 +1,133 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>SignBridge · Phòng họp</title>
+<meta name="description" content="Phòng họp SignBridge: lời nói thành ký hiệu, ký hiệu thành chữ và giọng nói.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="../assets/app.css"><link rel="stylesheet" href="../assets/room.css">
+</head><body>
+
+<!-- ===== Pre-join: name + accessibility question + gesture guide ===== -->
+<div class="pre" id="pre">
+  <div class="pre-card" role="dialog" aria-labelledby="preh">
+    <div class="pre-in">
+      <div class="pre-top">
+        <a class="plink" href="../"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg><span data-t="home">Trang chủ</span></a>
+        <button class="pl" id="plang" type="button" aria-label="Language">VI · EN</button>
+      </div>
+      <h1 id="preh" data-t="preTitle">Tham gia cuộc họp</h1>
+      <div class="pcode"><span data-t="roomCode">Mã phòng</span><b id="pcode"></b><button class="pl" id="pcopy" type="button" data-t="copy">Sao chép</button></div>
+      <div class="pnet" id="pnet"><i></i><span></span></div>
+      <label class="fld" id="fname"><span data-t="preName">Tên của bạn</span><input id="pname" maxlength="24" autocomplete="nickname" data-t-ph="preNamePh"><span class="em" data-t="needName">Hãy nhập tên của bạn</span></label>
+      <fieldset class="roles">
+        <legend data-t="q">Bạn có cần chức năng hỗ trợ khuyết tật không?</legend>
+        <div class="cue"><span data-i="hand"></span><span data-t="qCue"></span></div>
+        <label class="role help" id="rYes"><input type="radio" name="role" value="deaf"><span class="ri"><span data-i="hand"></span></span><span><b data-t="yesT"></b><p data-t="yesS"></p></span></label>
+        <label class="role" id="rNo"><input type="radio" name="role" value="hear"><span class="ri"><span data-i="mic"></span></span><span><b data-t="noT"></b><p data-t="noS"></p></span></label>
+      </fieldset>
+      <section class="guide" id="guide">
+        <h3 data-t="guideTitle"></h3><p data-t="guideSub"></p>
+        <div class="gg" id="pgg"></div>
+      </section>
+      <p class="priv" data-t="privacy"></p>
+    </div>
+    <div class="pre-bar"><button class="btn f" id="pjoin" type="button" disabled data-t="join">Tham gia</button></div>
+  </div>
+</div>
+
+<!-- ===== Call screen ===== -->
+<div class="app" id="app" hidden>
+  <header class="top">
+    <button class="pill-btn" id="codeBtn" type="button"><span id="codeTxt"></span><span data-i="copy"></span></button>
+    <span class="pill-btn net" id="netSt" role="status"><i></i><span></span></span>
+    <button class="pill-btn" id="lang2" type="button" aria-label="Language">VI · EN</button>
+  </header>
+
+  <main class="main">
+    <section class="stage rm" id="stage" aria-label="Participants"><div class="cc" id="cc" aria-live="polite"></div></section>
+
+    <aside class="panel" id="panel" aria-label="SignBridge">
+      <div class="ph"><div class="logo"><span data-i="hand"></span></div><h2>SignBridge</h2><button class="ib" id="xp" type="button" aria-label="Close"><span data-i="close"></span></button></div>
+      <div class="tabs" role="tablist" id="tabs"></div>
+      <div class="views" id="views">
+
+        <!-- Deaf: watch -->
+        <section class="view" id="v-watch">
+          <div class="avw" id="avw">
+            <canvas id="cv" aria-label="Signing avatar"></canvas>
+            <div class="pill" id="pill"><u>·</u><span></span></div>
+            <div class="q" id="q" hidden></div>
+            <div class="spd" id="spd" role="group"><button data-s="0.75" aria-pressed="false">0.75×</button><button data-s="1" aria-pressed="true">1×</button><button data-s="1.5" aria-pressed="false">1.5×</button></div>
+          </div>
+          <div class="sc" id="sc"><u id="scu">·</u><div><b id="scn"></b><p id="sct"></p></div></div>
+          <div class="chips" id="chips"></div>
+        </section>
+
+        <!-- Deaf: sign (camera + postures) -->
+        <section class="view" id="v-sign">
+          <div class="camw rm off" id="camw">
+            <video class="vid" id="vid" playsinline muted autoplay></video>
+            <canvas class="feed" id="cvr" aria-label="Your camera with hand tracking"></canvas>
+            <div class="rec"><i></i><span data-t="camLabel"></span></div>
+            <div class="pbadge" id="pbadge"><span id="pem"></span><u></u></div>
+            <div class="go" id="camgo"><span id="camgot"></span><button class="btn f" id="camon" type="button"><span data-i="cam"></span><span data-t="camOn"></span></button></div>
+            <div class="st" id="st"></div>
+          </div>
+          <div class="seq" id="seq" hidden></div>
+          <div class="sent" id="sent" hidden>
+            <div class="lbl"><span data-i="hand"></span><span data-t="yourMsg"></span></div>
+            <p id="sentT"></p>
+            <div class="row"><button class="btn o" id="redo" type="button"><span data-i="undo"></span><span data-t="redo"></span></button><button class="btn f" id="submit" type="button"><span data-i="send"></span><span data-t="send"></span></button></div>
+          </div>
+          <div class="row2"><div class="lang sm" id="slang"><button data-l="vi" aria-pressed="true">VI</button><button data-l="en" aria-pressed="false">EN</button></div></div>
+          <div class="gwrap"><h3 data-t="gesturesNow"></h3><div class="gg" id="gg"></div><p class="hint-t" data-t="guideHold"></p></div>
+          <div class="gwrap"><h3 data-t="sampleTitle"></h3><div class="samples" id="samples"></div></div>
+        </section>
+
+        <!-- Deaf: library -->
+        <section class="view" id="v-lib"><label class="find"><span data-i="search"></span><input id="fq" type="search" data-t-ph="libSearch" autocomplete="off"></label><div class="lib" id="lib"></div></section>
+
+        <!-- Hearing: talk -->
+        <section class="view" id="v-talk">
+          <button class="micbig" id="micbig" type="button" aria-label="Microphone"><span data-i="mic"></span></button>
+          <p class="micst" id="micst"></p>
+          <div class="interim" id="interim" aria-live="polite"></div>
+          <div class="row2"><div class="lang sm" id="tlang"><button data-l="vi" aria-pressed="true">VI</button><button data-l="en" aria-pressed="false">EN</button></div>
+            <div class="tgl"><span data-t="readAloud"></span><button id="voiceTgl" type="button" aria-pressed="true" aria-label="Read aloud"></button></div></div>
+          <form class="say" id="say"><input id="txt" type="text" autocomplete="off" data-t-ph="typePh" aria-label="Message"><button class="fab" aria-label="Send"><span data-i="send"></span></button></form>
+          <div class="qp" id="qp"></div>
+          <div class="lastsg" id="lastsg" hidden><div class="lbl"><span data-i="hand"></span><span id="lastwho"></span></div><p id="lasttxt"></p></div>
+        </section>
+
+        <!-- Everyone: chat log -->
+        <section class="view" id="v-log"><div class="log" id="log"><div class="empty" data-t="noMsg"></div></div></section>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="ctl">
+    <div class="ci"><span id="clk"></span><i></i><span id="ciCode"></span></div>
+    <div class="cm">
+      <button class="cb" id="bmic" type="button" aria-label="Microphone"><span data-i="micoff"></span></button>
+      <button class="cb" id="bcam" type="button" aria-label="Camera"><span data-i="cam"></span></button>
+      <button class="cb on" id="bcc" type="button" aria-label="Captions"><span data-i="cc"></span></button>
+      <button class="cb on" id="bvoice" type="button" aria-label="Voice"><span data-i="volume"></span></button>
+      <button class="cb" id="binv" type="button" aria-label="Invite"><span data-i="share"></span></button>
+      <button class="cb sbm jsb" type="button" aria-label="SignBridge"><span class="lg28" data-i="hand"></span></button>
+      <button class="cb end" id="bend" type="button" aria-label="Leave"><span data-i="end"></span></button>
+    </div>
+    <div class="cr2">
+      <button class="cb" id="bppl" type="button" aria-label="People"><span data-i="people"></span><span class="bd" id="bdn">1</span></button>
+      <button class="cb" id="bchat" type="button" aria-label="Chat"><span data-i="chat"></span></button>
+      <button class="cb jsb on" id="bsb" type="button" aria-label="SignBridge"><span class="lg28" data-i="hand"></span></button>
+    </div>
+  </footer>
+</div>
+
+<script src="../vendor/mqtt/mqtt.min.js"></script>
+<script src="../assets/i18n.js"></script>
+<script src="../assets/core.js"></script>
+<script src="../assets/icons.js"></script>
+<script src="../assets/net.js"></script>
+<script src="../assets/posture.js"></script>
+<script src="../assets/room.js"></script>
+</body></html>
